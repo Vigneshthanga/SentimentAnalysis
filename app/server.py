@@ -3,22 +3,27 @@ import asyncio
 import uvicorn
 from fastai import *
 from fastai.vision import *
+#from fastai.data.all import *
+#from fastai.optimizer import *
+#from fastai.callback.core import *
 from io import BytesIO
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
+from hierarchical_model import *
+import pathlib
 
-export_file_url = 'https://www.googleapis.com/drive/v3/files/1-IMD_pdfQDTRdTN2TLN2iNWk4lxah7Ul?alt=media&key=AIzaSyBKQUMzXUkGH_W2Jy9IF7ZTRMcc-0FFD_A'
-export_file_name = 'params.pkl'
+#export_file_url = 'https://www.googleapis.com/drive/v3/files/1-hcOTjAD1ELR6_1FPhW7arifG9jg1Q8N?alt=media&key=AIzaSyDMZOVdakuqXD_IBalpDK43XVTQAA8Ja2Q'
+export_file_url = 'https://www.googleapis.com/drive/v3/files/1-02L2PRi2fnE7QTccwpH2A3s_vA39wZe?alt=media&key=AIzaSyCIaEnZ46EdMleKdmKeBRZNFpd_yRTQiuU'
+export_file_name = 'model.pt'
 
 classes = ['1', '2', '3', '4']
-path = Path(__file__).parent
+path = pathlib.Path(__file__).parent
 
 app = Starlette()
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_headers=['X-Requested-With', 'Content-Type'])
 app.mount('/static', StaticFiles(directory='app/static'))
-
 
 async def download_file(url, dest):
     if dest.exists(): return
@@ -33,6 +38,16 @@ async def setup_learner():
     await download_file(export_file_url, path / export_file_name)
     try:
         learn = load_learner(path, export_file_name)
+        model = Hierarchical_Model(vocab,
+                                   new_matrix,
+                                   tag_to_ix,
+                                   num_labels,
+                                   task2label2id,
+                                   embedding_dim,
+                                   hidden_dim,
+                                   1,
+                                   train_embeddings=train_embeddings)
+#        learn = learner.load(path, export_file_name)
         return learn
     except RuntimeError as e:
         if len(e.args) > 0 and 'CPU-only machine' in e.args[0]:
