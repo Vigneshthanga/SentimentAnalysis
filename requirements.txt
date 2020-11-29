@@ -9,8 +9,8 @@ pillow~=7.2
 python-multipart==0.0.5
 starlette==0.13.6
 uvicorn==0.11.7
-scikit-learn
-torchtext
-nltk
-matplotlib
-tqdm
+scikit-learn==0.23.2
+torchtext==0.8.0
+nltk==3.4.5
+matplotlib==3.1.1
+tqdm==4.51.0
