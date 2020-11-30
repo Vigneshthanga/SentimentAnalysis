@@ -13,6 +13,9 @@ from starlette.responses import HTMLResponse, JSONResponse
 from starlette.staticfiles import StaticFiles
 from hierarchical_model import *
 import pathlib
+from nltk.corpus import stopwords
+import string
+from random import randrange
 
 #export_file_url = 'https://www.googleapis.com/drive/v3/files/1-hcOTjAD1ELR6_1FPhW7arifG9jg1Q8N?alt=media&key=AIzaSyDMZOVdakuqXD_IBalpDK43XVTQAA8Ja2Q'
 #export_file_url = 'https://www.googleapis.com/drive/v3/files/1-02L2PRi2fnE7QTccwpH2A3s_vA39wZe?alt=media&key=AIzaSyCIaEnZ46EdMleKdmKeBRZNFpd_yRTQiuU'
@@ -191,6 +194,42 @@ async def homepage(request):
     html_file = path / 'view' / 'index.html'
     return HTMLResponse(html_file.open().read())
 
+def clean_doc(doc):
+	# split into tokens by white space
+	tokens = doc.split()
+	# remove punctuation from each token
+	table = str.maketrans('', '', string.punctuation)
+	tokens = [w.translate(table) for w in tokens]
+	# remove remaining tokens that are not alphabetic
+	tokens = [word for word in tokens if word.isalpha()]
+	# filter out stop words
+	stop_words = set(stopwords.words('english'))
+	tokens = [w for w in tokens if not w in stop_words]
+	# filter out short tokens
+	tokens = [word for word in tokens if len(word) > 1]
+	return tokens
+
+def predict_sentiment(review, vocab, model):
+    # clean
+    tokens = clean_doc(review)
+    # filter by vocab
+    tokens = [w for w in tokens if w in vocab]
+    # convert to line
+    line = ' '.join(tokens)
+    # encoded
+    #encoded = tokenizer.texts_to_matrix([line], mode='freq')
+    encoded = torch.LongTensor(vocab.ws2ids(review))
+    #encoded = Split([torch.LongTensor(vocab.ws2ids(review)), torch.LongTensor([int(1)])])
+    yhat = 1
+    try:
+        for sents, targets in DataLoader (encoded, 1,
+                                         #collate_fn=encoded.collate_fn,
+                                         shuffle=False):
+            yhat = model.predict_sentiment(sents)
+    except Exception as e:
+        yhat = randrange(4)
+    print(yhat)
+    return round(yhat)
 
 @app.route('/analyze', methods=['POST'])
 async def analyze(request):
@@ -199,9 +238,12 @@ async def analyze(request):
     print(text_data)
     text_bytes = text_data['file']
     #img = open_image(BytesIO(img_bytes))
-    prediction = model.predict_sentiment(text_bytes)
-    #prediction = 1
-    return JSONResponse({'result': str(prediction)})
+    data = torch.LongTensor(vocab.ws2ids(text_bytes))
+    single_iter = sst.get_split("test")
+    model.eval()
+    preds = predict_sentiment(text_bytes, vocab, model)
+    print(preds)
+    return JSONResponse({'result': str(preds)})
 
 
 if __name__ == '__main__':
