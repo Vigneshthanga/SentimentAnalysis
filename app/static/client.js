@@ -15,10 +15,11 @@ function showPicked(input) {
 }
 
 function analyze() {
-  var uploadFiles = el("file-input").files;
-  if (uploadFiles.length !== 1) alert("Please select a file to analyze!");
+  var inputStr = el("text1").value;
+  if (inputStr.length < 5) alert("Please enter a valid statement!");
 
   el("analyze-button").innerHTML = "Analyzing...";
+  console.log(inputStr)
   var xhr = new XMLHttpRequest();
   var loc = window.location;
   xhr.open("POST", `${loc.protocol}//${loc.hostname}:${loc.port}/analyze`,
@@ -35,7 +36,7 @@ function analyze() {
   };
 
   var fileData = new FormData();
-  fileData.append("file", uploadFiles[0]);
+  fileData.append("file", inputStr);
   xhr.send(fileData);
 }
 

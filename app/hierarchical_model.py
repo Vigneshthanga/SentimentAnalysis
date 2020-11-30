@@ -114,22 +114,22 @@ class Hierarchical_Model(nn.Module):
         return (h0, c0)
 
     def max_pool(self, x):
-        batch_size = x.batch_sizes[0]
+        #batch_size = x.batch_sizes[0]
 
-        emb = self.word_embeds(x.data)
+        emb = self.word_embeds(x)
         emb = self.batch_norm(emb)
         emb = self.word_dropout(emb)
 
-        packed_emb = PackedSequence(emb, x.batch_sizes)
-        self.hidden = self.init_hidden1(batch_size)
+        #packed_emb = PackedSequence(emb, x.batch_sizes)
+        self.hidden = self.init_hidden1(1)
 
-        int_output, (hn, cn) = self.lstm1(packed_emb, self.hidden)
+        int_output, (hn, cn) = self.lstm1(emb, self.hidden)
 
         # For sentiment, concatenate the intermediate rep with the embeddings
         # WE MIGHT NEED TO CHANGE THIS TO KEEP THE HIDDEN REPRESENTATIONS
         # INSTEAD OF THE OUTPUTS
         int_input = torch.cat((emb, int_output.data), dim=1)
-        int_input = PackedSequence(int_input, x.batch_sizes)
+        int_input = PackedSequence(int_input, 1)
 
         output, _ = self.lstm2(int_input)
         o, _ = pad_packed_sequence(output, batch_first=True)

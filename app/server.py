@@ -85,8 +85,9 @@ parser.add_argument("--FINE_GRAINED", "-fg",
         default="fine",
         help="Either 'fine' or 'binary' (defaults to 'fine'.")
 
-args = parser.parse_args()
-print(args)
+#args = parser.parse_args()
+#print(args)
+args, unknown = parser.parse_known_args()
 
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
@@ -171,17 +172,19 @@ UNK_embedding = np.zeros((1, 300))
 new_embeddings = np.zeros((diff, args.EMBEDDING_DIM))
 new_matrix = np.concatenate((UNK_embedding, embeddings._matrix, new_embeddings))
 
-'''
 model = Hierarchical_Model(vocab,
                            new_matrix,
                            tag_to_ix,
-                           num_labels,
+                           len(sst.labels),
                            task2label2id,
-                           embedding_dim,
-                           hidden_dim,
+                           300,
+                           100,
                            1,
-                           train_embeddings=train_embeddings)
-'''
+                           train_embeddings="-te")
+
+#model.load_state_dict(torch.load(path / export_file_name))
+model = torch.load(path / export_file_name)
+
 
 @app.route('/')
 async def homepage(request):
@@ -191,10 +194,13 @@ async def homepage(request):
 
 @app.route('/analyze', methods=['POST'])
 async def analyze(request):
-    img_data = await request.form()
-    img_bytes = await (img_data['text1'].read())
+    print('inside analyze')
+    text_data = await request.form()
+    print(text_data)
+    text_bytes = text_data['file']
     #img = open_image(BytesIO(img_bytes))
-    prediction = learn.predict(img_bytes)
+    prediction = model.predict_sentiment(text_bytes)
+    #prediction = 1
     return JSONResponse({'result': str(prediction)})
 
 
